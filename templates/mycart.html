@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart</title>
+    <!-- Bootstrap CSS link -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1>Your Shopping Cart</h1>
+        <h4>Qty with yellow colors shows the max available stock!</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products_dic['product'] %}
+                <tr>
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.rate_per_unit }}</td>
+                    <td>
+                        {% if products_dic['quantity'][loop.index0][1]=='max' %}
+                        <input type="text" name="quantity_{{ product.id }}"
+                            value="{{ products_dic['quantity'][loop.index0][0] }}" class="form-control"
+                            style="width: 50px; display: inline-block; background-color: yellow;">
+                        {% else %}
+                        <input type="text" name="quantity_{{ product.id }}"
+                            value="{{ products_dic['quantity'][loop.index0][0] }}" class="form-control"
+                            style="width: 50px; display: inline-block;">
+                        {% endif %}
+                    </td>
+                    <td>{{ product.rate_per_unit * products_dic['quantity'][loop.index0][0] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <h4>Total: {{ products_dic['total_price'] }}</h4>
+        <a href="/pay" class="btn btn-primary">Make the payment</a>
+    </div>
+</body>
+
+</html>
