@@ -1,10 +1,11 @@
-from flask import redirect, url_for, render_template, request, flash
+from flask import render_template, request, redirect, url_for, flash, make_response, session
 from flask import current_app as app
-from application.database import db_session
-from application.models import *
-from functools import wraps
+from application.database import db
+from .models import *
 from datetime import datetime
-from flask_security import current_user, auth_required, roles_required
+from functools import wraps
+import numbers
+from flask_security import current_user, roles_required, auth_required
 
 # Helpful functions
 def add_role(func):
@@ -14,13 +15,41 @@ def add_role(func):
             roles=app.security.datastore.find_or_create_role(
                 name="user", permissions=["user-read", "user-write"]
             )
-            db_session.commit()
+            db.session.commit()
             app.security.datastore.add_role_to_user(current_user,roles)
-            db_session.commit()
+            db.session.commit()
         return func(*args, **kwargs)
 
     return wrapper
     
+# Views
+@app.route("/")
+def home():
+    search_query=None
+    search_query = request.args.get('search_query')
+    if search_query:
+        # Query the database for products matching the search query
+        products = Product.query.filter(
+            (Product.name.like(f'%{search_query}%')) |
+            (Product.category.has(Category.name.like(f'%{search_query}%'))) |
+            (Product.manufacture_date.like(f'%{search_query}%')) |
+            (Product.rate_per_unit == search_query)
+        ).all()
+        
+        return render_template('base.html', products=products, search_query=search_query)
+    
+    categories=Category.query.all()
+    products=Product.query.all()
+    return render_template('base.html', categories=categories,products=products, search_query=search_query)
+
+@auth_required()
+@app.route("/authorizing")
+def authorize():
+    if current_user.roles[0].name=='admin':
+        return redirect(url_for('admin_home'))
+    else:
+        return redirect(url_for('user_home'))
+
 # Views: Manager
 @app.route("/admin", methods=['GET', 'POST'])
 @auth_required()
@@ -61,11 +90,11 @@ def add_category():
         new_category = Category(name=name)
 
         try:
-            db_session.add(new_category)
-            db_session.commit()
+            db.session.add(new_category)
+            db.session.commit()
             flash('Category added successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('Category with the same name already exists!', 'danger')
 
     return render_template('add_category.html')
@@ -95,15 +124,15 @@ def add_product():
             category_id=category_id,
             stock=stock
         )
-        db_session.add(new_product)
-        db_session.commit()
+        db.session.add(new_product)
+        db.session.commit()
         flash('Product added successfully!', 'success')
         try:
-            db_session.add(new_product)
-            db_session.commit()
+            db.session.add(new_product)
+            db.session.commit()
             flash('Product added successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('An error occurred while adding the product.', 'danger')
     categories=Category.query.all()
     return render_template('add_product.html', categories=categories)
@@ -130,10 +159,10 @@ def update_product(product_id):
         product.stock = request.form['stock']
 
         try:
-            db_session.commit()
+            db.session.commit()
             flash('Product updated successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('An error occurred while updating the product.', 'danger')
 
     return render_template('update_product.html', product=product)
@@ -151,11 +180,11 @@ def delete_product(product_id):
 
     if request.method == 'POST':
         try:
-            db_session.delete(product)
-            db_session.commit()
+            db.delete(product)
+            db.session.commit()
             flash('Product deleted successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('An error occurred while deleting the product.', 'danger')
 
     return render_template('delete_product.html', product=product)
@@ -174,10 +203,10 @@ def update_category(category_id):
         category.name = request.form['name']
 
         try:
-            db_session.commit()
+            db.session.commit()
             flash('Category updated successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('An error occurred while updating the category.', 'danger')
 
     return render_template('update_category.html', category=category)
@@ -193,11 +222,11 @@ def delete_category(category_id):
 
     if request.method == 'POST':
         try:
-            db_session.delete(category)
-            db_session.commit()
+            db.delete(category)
+            db.session.commit()
             flash('Category deleted successfully!', 'success')
         except:
-            db_session.rollback()
+            db.session.rollback()
             flash('An error occurred while deleting the category.', 'danger')
 
     return render_template('delete_category.html', category=category)

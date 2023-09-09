@@ -1,16 +1,16 @@
-from application.database import Base
+from application.database import db
 from flask_security import UserMixin, RoleMixin
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy import Boolean, DateTime, Column, Integer, \
                     String, ForeignKey, JSON, Float
 
-class Category(Base):
+class Category(db.Model):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True)
     name = Column(String(255), unique=True)
 
-class Product(Base):
+class Product(db.Model):
     __tablename__ = 'products'
     id = Column(Integer, primary_key=True)
     stock = Column(Integer)
@@ -22,7 +22,7 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey('categories.id'))
     category = relationship('Category', backref='products')
 
-class Order(Base):
+class Order(db.Model):
     __tablename__ = 'orders'
     id = Column(Integer, primary_key=True)
     amount_paid = Column(Float)
@@ -32,20 +32,20 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship('User', backref='orders')
 
-class RolesUsers(Base):
+class RolesUsers(db.Model):
     __tablename__ = 'roles_users'
     id = Column(Integer(), primary_key=True)
     user_id = Column('user_id', Integer(), ForeignKey('user.id'))
     role_id = Column('role_id', Integer(), ForeignKey('role.id'))
 
-class Role(Base, RoleMixin):
+class Role(db.Model, RoleMixin):
     __tablename__ = 'role'
     id = Column(Integer(), primary_key=True)
     name = Column(String(80), unique=True)
     description = Column(String(255))
     permissions = Column(MutableList.as_mutable(JSON), nullable=True)
 
-class User(Base, UserMixin):
+class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True)
